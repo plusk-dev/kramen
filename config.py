@@ -5,6 +5,7 @@ from qdrant_client import QdrantClient
 REDIS_URL = os.getenv("REDIS_URL", "")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 DATABASE_URL = os.getenv("DATABASE_URL", "dev.db")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "")
 JWT_SECRET = os.getenv("JWT_SECRET", "cocomelon")
 JWT_EXPIRY_DAYS = int(os.getenv("JWT_EXPIRY_DAYS", 2))
 
@@ -14,5 +15,6 @@ LATE_EMBEDDING_MODEL = os.getenv("LATE_EMBEDDING_MODEL", "colbertv2.0")
 
 # Initialize Qdrant client
 qdrant_client = QdrantClient(
-    url=QDRANT_URL,  # e.g. "http://localhost:6333" or your cloud URL
+    url=QDRANT_URL,  # e.g. "http://localhost:6333" or your cloud URL,
+    api_key=QDRANT_API_KEY
 )
