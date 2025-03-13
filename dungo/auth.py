@@ -20,7 +20,7 @@ async def verify_access_token(access_token: str):
         })
 
 
-@auth_router.post("/")
+@auth_router.post("")
 async def auth(request: AuthenticationRequest):
     # verify_access_token(request.access_token)
     user = session.query(User).filter(User.email == request.email).first()
