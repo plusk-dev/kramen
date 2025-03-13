@@ -2,7 +2,7 @@ import json
 import uuid
 from fastapi import APIRouter, Depends, HTTPException
 from models import Integration, session
-from rag.upsert import upsert_vector, vector_client
+from rag.upsert import upsert_vector, qdrant_client
 from schemas.dungo_schemas.integrations import CreateIntegrationModel, DeleteIntegrationModel
 from schemas.dungo_schemas.openapi import UploadOpenapiModel
 from schemas.raapi_schemas.upsert import UpsertSchema
@@ -120,7 +120,7 @@ async def upload_openapi(
 @integrations_router.get("/endpoints")
 async def endpoints(integration_id: str):
     try:
-        search_results = vector_client.scroll(
+        search_results = qdrant_client.scroll(
             collection_name=integration_id,
             limit=100,
             with_payload=True,

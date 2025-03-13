@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from fastembed import LateInteractionTextEmbedding, SparseTextEmbedding, TextEmbedding
 from qdrant_client import QdrantClient, models
 from schemas.raapi_schemas.upsert import UpsertSchema
-from config import DENSE_EMBEDDING_MODEL, LATE_EMBEDDING_MODEL, SPARSE_EMBEDDING_MODEL, vector_client
+from config import DENSE_EMBEDDING_MODEL, LATE_EMBEDDING_MODEL, SPARSE_EMBEDDING_MODEL, qdrant_client
 
 
 
@@ -13,7 +13,7 @@ upsert_router = APIRouter(tags=["Vector DB"])
 
 @upsert_router.post("/", include_in_schema=False)
 async def upsert_vector(request: UpsertSchema):
-    existing_collections = vector_client.get_collections().collections
+    existing_collections = qdrant_client.get_collections().collections
     exists = False
     for collection in existing_collections:
         if collection.name == request.integration_id:
@@ -33,7 +33,7 @@ async def upsert_vector(request: UpsertSchema):
         late_interaction_embedding_model.passage_embed(request.text))
 
     if not exists:
-        vector_client.create_collection(
+        qdrant_client.create_collection(
             request.integration_id,
             vectors_config={
                 DENSE_EMBEDDING_MODEL: models.VectorParams(
@@ -57,7 +57,7 @@ async def upsert_vector(request: UpsertSchema):
 
     metadata = request.metadata
     metadata['text'] = request.text
-    new_point = vector_client.upsert(request.integration_id, points=[
+    new_point = qdrant_client.upsert(request.integration_id, points=[
         models.PointStruct(
             id=str(uuid.uuid4()),
             vector={
