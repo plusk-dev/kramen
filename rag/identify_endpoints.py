@@ -12,8 +12,10 @@ from rag.agents.request_generator import BodyGeneratorSignature, BodyInputModel,
 from rag.agents.rephraser_signature import REPHRASER_AGENT, InputModel as RephraserInputModel
 from rag.agents.endpoint_filterer_signature import ENDPOINT_FILTERER_AGENT, Endpoint, InputModel as EndpointFiltererInputModel
 from rag.agents.final_response_signature import FINAL_RESPONSE_GENERATOR_AGENT, InputModel as FinalResponseGeneratorInputModel
-from rag.router import run_query_router
+from fastapi import APIRouter
 
+
+run_query_router = APIRouter()
 
 @run_query_router.post("/identify-endpoints")
 async def identify_endpoints(request: IdentifyEndpointsRequest, api_key: str = Header()):

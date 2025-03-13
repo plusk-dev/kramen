@@ -1,8 +1,10 @@
 import json
 import uuid
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from models import Integration, session
-from rag.upsert import upsert_vector, qdrant_client
+from schemas.raapi_schemas.rag import EditVectorSchema
+from utils.upsert import upsert_vector, qdrant_client
 from schemas.dungo_schemas.integrations import CreateIntegrationModel, DeleteIntegrationModel
 from schemas.dungo_schemas.openapi import UploadOpenapiModel
 from schemas.raapi_schemas.upsert import UpsertSchema
@@ -130,3 +132,33 @@ async def endpoints(integration_id: str):
         return [point.payload for point in points]
     except:
         return []
+
+
+@integrations_router.post("/edit-endpoint")
+async def edit_vector(request: EditVectorSchema):
+    existing_collections = qdrant_client.get_collections().collections
+    exists = any(collection.name ==
+                 request.integration_id for collection in existing_collections)
+
+    if not exists:
+        return JSONResponse(content={"message": "the given bot does not exist"}, status_code=404)
+
+    points = qdrant_client.query_points(
+        collection_name=request.integration_id, with_payload=True).points
+
+    matching_point = None
+    for point in points:
+        if point.payload.get("url") == request.new_metadata["url"]:
+            matching_point = point
+            break
+
+    if not matching_point:
+        return JSONResponse(content={"message": "No matching vector found for the given URL"}, status_code=404)
+
+    qdrant_client.overwrite_payload(
+        collection_name=request.integration_id,
+        points=[matching_point.id],
+        payload=request.new_metadata
+    )
+
+    return {"message": "operation successful"}

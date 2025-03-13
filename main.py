@@ -23,9 +23,9 @@ app.add_middleware(
 )
 
 
-@app.get("/")
-async def index():
-    return {}
+# @app.get("/")
+# async def index():
+#     return {}
 
 
 async def on_startup():

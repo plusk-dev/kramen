@@ -1,17 +1,10 @@
 import uuid
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
 from fastembed import LateInteractionTextEmbedding, SparseTextEmbedding, TextEmbedding
-from qdrant_client import QdrantClient, models
+from qdrant_client import models
 from schemas.raapi_schemas.upsert import UpsertSchema
 from config import DENSE_EMBEDDING_MODEL, LATE_EMBEDDING_MODEL, SPARSE_EMBEDDING_MODEL, qdrant_client
 
 
-
-upsert_router = APIRouter(tags=["Vector DB"])
-
-
-@upsert_router.post("/", include_in_schema=False)
 async def upsert_vector(request: UpsertSchema):
     existing_collections = qdrant_client.get_collections().collections
     exists = False

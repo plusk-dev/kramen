@@ -4,7 +4,7 @@ from qdrant_client import QdrantClient
 # Fetch environment variables with default values
 REDIS_URL = os.getenv("REDIS_URL", "")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
-DATABASE_URL = os.getenv("DATABASE_URL", "dev.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///dev.db")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "")
 JWT_SECRET = os.getenv("JWT_SECRET", "cocomelon")
 JWT_EXPIRY_DAYS = int(os.getenv("JWT_EXPIRY_DAYS", 2))

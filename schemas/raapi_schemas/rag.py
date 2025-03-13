@@ -32,3 +32,7 @@ class RunQuerySchema(BaseModel):
     request_headers: dict = Field(
         ..., description="Headers to be used to make request on the user's behalf")
     llm_config: LLMConfig
+
+class EditVectorSchema(BaseModel):
+    integration_id: str = Field(..., description="ID of the integration")
+    new_metadata: dict = Field(..., description="new metadata")

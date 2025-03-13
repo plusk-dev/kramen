@@ -5,7 +5,7 @@ import requests
 from typing import List, Callable
 from qdrant_client.models import ScoredPoint
 from schemas.raapi_schemas.query import Query
-from rag.upsert import qdrant_client
+from utils.upsert import qdrant_client
 import json
 
 from config import DENSE_EMBEDDING_MODEL, LATE_EMBEDDING_MODEL, SPARSE_EMBEDDING_MODEL
