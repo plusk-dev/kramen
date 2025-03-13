@@ -3,6 +3,8 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, Foreign
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 
+from config import DATABASE_URL
+
 Base = declarative_base()
 
 class User(Base):
@@ -42,7 +44,7 @@ class Integration(Base):
     owner = relationship('User', back_populates='integrations')
 
 # Create an SQLite engine (or any other database you prefer)
-engine = create_engine('sqlite:///dev.db')
+engine = create_engine(DATABASE_URL)
 
 # Create all tables
 Base.metadata.create_all(engine)
