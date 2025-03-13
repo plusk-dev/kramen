@@ -3,9 +3,8 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from fastembed import LateInteractionTextEmbedding, SparseTextEmbedding, TextEmbedding
 from qdrant_client import QdrantClient, models
-import qdrant_client
 from schemas.raapi_schemas.upsert import UpsertSchema
-from config import DENSE_EMBEDDING_MODEL, LATE_EMBEDDING_MODEL, SPARSE_EMBEDDING_MODEL
+from config import DENSE_EMBEDDING_MODEL, LATE_EMBEDDING_MODEL, SPARSE_EMBEDDING_MODEL, qdrant_client
 
 
 
