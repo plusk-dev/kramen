@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -28,6 +29,7 @@ async def index():
 
 
 async def on_startup():
+    print(os.getenv("DATABASE_URL"))
     send_discord_message("start-shut", "success", "App Started")
 
 
