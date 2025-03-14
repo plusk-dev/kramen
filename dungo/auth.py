@@ -6,6 +6,7 @@ from schemas.dungo_schemas.auth import AuthenticationRequest
 from models import User, session
 from datetime import datetime, timedelta
 from utils.general import sqlalchemy_object_to_dict
+from utils.notifs.admin.discord import send_discord_message
 
 # the prefix for this is /auth
 auth_router = APIRouter()
@@ -36,7 +37,7 @@ async def auth(request: AuthenticationRequest):
         )
         session.add(user)
         session.commit()
-
+        send_discord_message('signup', 'success', request.email + " just signed up !")
     response = sqlalchemy_object_to_dict(user)
     response['sign_up'] = sign_up
 
