@@ -1,6 +1,6 @@
 import json
 import uuid
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from models import Integration, session
 from schemas.raapi_schemas.rag import EditVectorSchema
@@ -120,7 +120,7 @@ async def upload_openapi(
 
 
 @integrations_router.get("/endpoints")
-async def endpoints(integration_id: str):
+async def endpoints(integration_id=Query(str, description="ID of the integration"), user=Depends(verify_token)):
     try:
         search_results = qdrant_client.scroll(
             collection_name=integration_id,

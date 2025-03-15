@@ -6,7 +6,7 @@ from models import User, session
 from utils.general import sqlalchemy_object_to_dict
 
 
-def verify_token(token=Header(str)) -> bool:
+def verify_token(token=Header(str, description="The user's JWT.")) -> bool:
     # token = request.headers.get("token")
     # if token is None:
     #     raise HTTPException(status_code=401, detail="JWT not provided")

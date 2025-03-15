@@ -1,10 +1,13 @@
 import os
+import aioredis
 from qdrant_client import QdrantClient
 
 # Fetch environment variables with default values
-REDIS_URL = os.getenv("REDIS_URL", "")
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///dev.db")
+if DATABASE_URL == "":
+    DATABASE_URL = "sqlite:///dev.db"
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "")
 JWT_SECRET = os.getenv("JWT_SECRET", "cocomelon")
 JWT_EXPIRY_DAYS = int(os.getenv("JWT_EXPIRY_DAYS", 2))
@@ -18,3 +21,5 @@ qdrant_client = QdrantClient(
     url=QDRANT_URL,  # e.g. "http://localhost:6333" or your cloud URL,
     api_key=QDRANT_API_KEY
 )
+
+redis_client = aioredis.from_url(REDIS_URL)
