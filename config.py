@@ -1,5 +1,5 @@
 import os
-import aioredis
+from redis.asyncio import Redis
 from qdrant_client import QdrantClient
 
 # Fetch environment variables with default values
@@ -22,4 +22,4 @@ qdrant_client = QdrantClient(
     api_key=QDRANT_API_KEY
 )
 
-redis_client = aioredis.from_url(REDIS_URL)
+redis_client = Redis.from_url(REDIS_URL)
