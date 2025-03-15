@@ -135,7 +135,7 @@ async def endpoints(integration_id=Query(str, description="ID of the integration
 
 
 @integrations_router.post("/edit-endpoint")
-async def edit_vector(request: EditVectorSchema):
+async def edit_vector(request: EditVectorSchema, user=Depends(verify_token)):
     existing_collections = qdrant_client.get_collections().collections
     exists = any(collection.name ==
                  request.integration_id for collection in existing_collections)
@@ -155,10 +155,27 @@ async def edit_vector(request: EditVectorSchema):
     if not matching_point:
         return JSONResponse(content={"message": "No matching vector found for the given URL"}, status_code=404)
 
-    qdrant_client.overwrite_payload(
-        collection_name=request.integration_id,
-        points=[matching_point.id],
-        payload=request.new_metadata
-    )
+    # Check if the description has changed
+    if request.new_metadata.get("description") != matching_point.payload.get("description"):
+        # Delete the existing point
+        qdrant_client.delete(
+            collection_name=request.integration_id,
+            points=[matching_point.id]
+        )
+        # Placeholder comment for creating a new point later
+        # TODO: Add logic to create a new point with the updated description
+        await upsert_vector(UpsertSchema(
+            integration_id=request.integration_id,
+            text=request.new_metadata.get("description"),
+            metadata=request.new_metadata
+        ))
+
+    else:
+        # Update the existing point with the new metadata
+        qdrant_client.overwrite_payload(
+            collection_name=request.integration_id,
+            points=[matching_point.id],
+            payload=request.new_metadata
+        )
 
     return {"message": "operation successful"}

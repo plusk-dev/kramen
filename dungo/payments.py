@@ -68,17 +68,23 @@ async def webhook(request: Request, stripe_signature: Optional[str] = Header(Non
         subscription = event.data.object
         customer = stripe.Customer.retrieve(subscription.customer)
         customer_email = customer.email
-        limit = int(subscription['items']['data'][0]['price']['metadata'].get("limit", 0))
-
-        update_user_limit(customer_email, limit)
+        price_details = subscription['items']['data'][0]['price']
+        if price_details['product'] == '':
+            limit = int(price_details['metadata'].get("limit", 0))
+            update_user_limit(customer_email, limit)
+        else:
+            return JSONResponse(content={"message": "event not for kramen"})
 
     elif event.type == "customer.subscription.deleted":
         subscription = event.data.object
         customer = stripe.Customer.retrieve(subscription.customer)
         customer_email = customer.email
-
-        # Update user limit to 0 in the database
-        update_user_limit(customer_email, 0)
+        price_details = subscription['items']['data'][0]['price']
+        if price_details['product'] == '':
+            limit = int(price_details['metadata'].get("limit", 0))
+            update_user_limit(customer_email, 0)
+        else:
+            return JSONResponse(content={"message": "event not for kramen"})
 
     return JSONResponse(content={"message": "ok"}, status_code=200)
 
