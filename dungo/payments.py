@@ -35,7 +35,7 @@ async def checkout(request: Request, checkout_request: CheckoutRequest, user: di
             customer_email=user["email"],
             mode="subscription",
             success_url="https://kramen.tech/dashboard",
-            cancel_url="https://kramen.tec/dashboard",
+            cancel_url="https://kramen.tech/dashboard",
         )
         return JSONResponse(content={"session_id": session.id})
     except Exception as e:
