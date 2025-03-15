@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Header, Request, Depends
 import stripe
 from fastapi.responses import JSONResponse
+from config import STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
 from schemas.dungo_schemas.payments import CheckoutRequest
 from models import User, session
 from utils.auth import verify_token  # Assuming you have an auth system in place
@@ -10,9 +11,6 @@ from utils.auth import verify_token  # Assuming you have an auth system in place
 payments_router = APIRouter()
 
 # Stripe Configuration
-STRIPE_SECRET_KEY = "sk_test_51PXtInINlb77fuyVbfH0uDHYvm70OcWFuReQMtT3aeKNaQNgueJHWpLmFIQZz8zcAOglk1DtmQHzhGa0qDpAWFxy00TyMm3ZT9"
-STRIPE_WEBHOOK_SECRET = os.getenv(
-    "STRIPE_WEBHOOK_SECRET", "whsec_84d697f22eda068596c45d3917ee7941a5970cad4d206dd237c85352117e1da7")
 
 stripe.api_key = STRIPE_SECRET_KEY
 
