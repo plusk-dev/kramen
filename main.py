@@ -9,6 +9,7 @@ from dungo.auth import auth_router
 from dungo.integrations import integrations_router
 from dungo.api_key import api_key_router
 from dungo.payments import payments_router
+from dungo.user import users_router
 
 from rag.identify_endpoints import run_query_router
 
@@ -43,6 +44,7 @@ app.include_router(integrations_router,
 app.include_router(api_key_router, prefix="/keys", tags=['API Keys'])
 app.include_router(payments_router, prefix="/payments", tags=['Payments'])
 app.include_router(run_query_router, prefix="/run", tags=['Run'])
+app.include_router(users_router, prefix="/user", tags=['User'])
 
 app.add_event_handler("startup", on_startup)
 app.add_event_handler("shutdown", on_shutdown)
