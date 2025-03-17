@@ -162,7 +162,7 @@ async def edit_vector(request: EditVectorSchema, user=Depends(verify_token)):
         # Delete the existing point
         qdrant_client.delete(
             collection_name=request.integration_id,
-            points=[matching_point.id]
+            points_selector=[matching_point.id],
         )
         # Placeholder comment for creating a new point later
         # TODO: Add logic to create a new point with the updated description
