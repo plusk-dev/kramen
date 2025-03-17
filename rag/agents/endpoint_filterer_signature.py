@@ -3,9 +3,9 @@ from pydantic import BaseModel, Field
 import dspy
 
 
-lm = dspy.LM('groq/gemma2-9b-it',
-             api_key='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')
-dspy.configure(lm=lm)
+# lm = dspy.LM('groq/gemma2-9b-it',
+#              api_key='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')
+# dspy.configure(lm=lm)
 
 
 class Endpoint(BaseModel):

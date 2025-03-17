@@ -80,7 +80,6 @@ async def identify_endpoints(request: IdentifyEndpointsRequest, api_key: str = H
 
 @run_query_router.post("/action")
 async def run_endpoint(request: RunQuerySchema, api_key: str = Header(...)):
-    await validate_api_key(api_key)
     lm = dspy.LM(model=request.llm_config.llm,
                  api_key=request.llm_config.llm_api_key)
     dspy.configure(lm=lm)
