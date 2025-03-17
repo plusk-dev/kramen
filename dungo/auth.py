@@ -1,7 +1,7 @@
 import requests
 import jwt
 from fastapi import APIRouter, HTTPException
-from config import JWT_EXPIRY_DAYS, JWT_SECRET
+from config import FREE_RATE_LIMIT, JWT_EXPIRY_DAYS, JWT_SECRET
 from schemas.dungo_schemas.auth import AuthenticationRequest
 from models import User, session
 from datetime import datetime, timedelta
@@ -33,7 +33,7 @@ async def auth(request: AuthenticationRequest):
             email=request.email,
             pfp=request.pfp,
             sign_up_method=request.sign_up_method,
-            limit=0
+            limit=FREE_RATE_LIMIT
         )
         session.add(user)
         session.commit()

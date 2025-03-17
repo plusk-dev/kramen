@@ -19,6 +19,9 @@ LATE_EMBEDDING_MODEL = os.getenv("LATE_EMBEDDING_MODEL", "colbertv2.0")
 KRAMEN_PRODUCT_ID = os.getenv("PRODUCT_ID", "prod_RtAaDut7sjXW4w")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "sk_test_51PXtInINlb77fuyVbfH0uDHYvm70OcWFuReQMtT3aeKNaQNgueJHWpLmFIQZz8zcAOglk1DtmQHzhGa0qDpAWFxy00TyMm3ZT9")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "whsec_84d697f22eda068596c45d3917ee7941a5970cad4d206dd237c85352117e1da7")
+
+FREE_RATE_LIMIT = 500
+
 # Initialize Qdrant client
 qdrant_client = QdrantClient(
     url=QDRANT_URL,  # e.g. "http://localhost:6333" or your cloud URL,
