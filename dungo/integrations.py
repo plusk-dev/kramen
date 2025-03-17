@@ -76,7 +76,7 @@ async def upload_openapi(
                 'integration_id': request.integration_id,
                 'tool': False
             }
-            if method.upper() + path not in request.selected_endpoints:
+            if str(method.upper() + "_" + path) not in request.selected_endpoints:
                 continue
 
             parameters = request_content.get('parameters', [])
