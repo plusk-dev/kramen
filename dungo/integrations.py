@@ -160,6 +160,8 @@ async def edit_vector(request: EditVectorSchema, user=Depends(verify_token)):
     # Check if the description has changed
     if request.new_metadata.get("description") != matching_point.payload.get("description"):
         # Delete the existing point
+
+
         qdrant_client.delete(
             collection_name=request.integration_id,
             points_selector=[matching_point.id],
