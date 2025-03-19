@@ -86,7 +86,7 @@ def create_pydantic_model_from_json(parameters, model_name):
 
 
 class ParametersInputModel(BaseModel):
-    request_parameters_schema: dict = Field(
+    request_parameters_schema: dict | list = Field(
         description="Define the parameters required for the request as a query. Use this schema specifically to extract and structure the request parameters content in the final output."
     )
     query: str = Field(
@@ -96,12 +96,12 @@ class ParametersInputModel(BaseModel):
 
 class ParametersOutputModel(BaseModel):
     request_parameters: dict = Field(
-        description="A JSON object containing the request parameters with values derived from the query. If a request parameters schema is provided, ensure this output is never empty. Include only values explicitly mentioned in the query—do not add anything extra."
+        description="A JSON object containing the request parameters with values derived from the query. If a request parameters schema is provided, ensure this output is never empty. Include only values explicitly mentioned in the query—do not add anything extra. If there is a parameter named 'query', use very specific keywords only as the value for that parameter, never use the entire user query."
     )
 
 
 class BodyInputModel(BaseModel):
-    request_body_schema: dict = Field(
+    request_body_schema: dict | list = Field(
         description="Provide the schema for the request body. This will be used to extract and structure only the request body content in the final output."
     )
     query: str = Field(

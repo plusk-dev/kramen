@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 class InputModel(BaseModel):
     query: str = Field(..., description="User query")
-    structure_of_data: Any = Field(..., description="Structure of the data that you will use to answer the user query")
+    structure_of_data: dict | list = Field(..., description="Structure of the data that you will use to answer the user query")
     data: Any = Field(..., description="Data that you will use to answer the user's query")
 
 

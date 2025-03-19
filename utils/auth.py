@@ -2,7 +2,7 @@ from datetime import datetime
 from fastapi import HTTPException, Header, Request
 import jwt
 from config import JWT_SECRET
-from models import User, session
+from models import Integration, User, session
 from utils.general import sqlalchemy_object_to_dict
 
 
@@ -27,3 +27,11 @@ def verify_token(token=Header(str, description="The user's JWT.")) -> bool:
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
         raise HTTPException(status_code=403, detail={
                             "message": "you are not logged in"})
+
+
+def check_integration_ownership(integration_id, user_id):
+    integration = session.query(Integration).filter(
+        Integration.uuid == integration_id).first()
+    if integration is None or integration.owner_id != user_id:
+        return False
+    return True

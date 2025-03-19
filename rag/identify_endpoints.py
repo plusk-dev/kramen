@@ -2,20 +2,23 @@ import json
 import dspy
 from fastapi import APIRouter, Header
 import requests
+from rag.agents.decomposer_agent import DECOMPOSER_AGENT, InputModel as DecomposerInputModel
 from rag.agents.endpoint_filterer_signature import ENDPOINT_FILTERER_AGENT, Endpoint
+from rag.agents.integration_picker import INTEGRATION_PICKER, InputModel as IntegrationPickerInputModel
 from rag.agents.rephraser_signature import REPHRASER_AGENT
 from rag.query import get_all_endpoints, query_db, tool_factory
 from schemas.raapi_schemas.query import Query
-from schemas.raapi_schemas.rag import IdentifyEndpointsRequest, RunQuerySchema
+from schemas.raapi_schemas.rag import DeepThinkSchema, IdentifyEndpointsRequest, RunQuerySchema
 from utils.api_key import validate_api_key
 from rag.agents.request_generator import BodyGeneratorSignature, BodyInputModel, ParametersGeneratorSignature, ParametersInputModel, create_pydantic_model_from_json
 from rag.agents.rephraser_signature import REPHRASER_AGENT, InputModel as RephraserInputModel
 from rag.agents.endpoint_filterer_signature import ENDPOINT_FILTERER_AGENT, Endpoint, InputModel as EndpointFiltererInputModel
 from rag.agents.final_response_signature import FINAL_RESPONSE_GENERATOR_AGENT, InputModel as FinalResponseGeneratorInputModel
-from fastapi import APIRouter
-
+from models import session, Integration
+from utils.general import sqlalchemy_object_to_dict
 
 run_query_router = APIRouter()
+
 
 @run_query_router.post("/identify-endpoints")
 async def identify_endpoints(request: IdentifyEndpointsRequest, api_key: str = Header()):
@@ -83,6 +86,7 @@ async def run_endpoint(request: RunQuerySchema, api_key: str = Header(...)):
     lm = dspy.LM(model=request.llm_config.llm,
                  api_key=request.llm_config.llm_api_key)
     dspy.configure(lm=lm)
+    print(request.request_headers)
     api_base = request.api_base.rstrip('/')
     all_endpoints = await get_all_endpoints(request.integration_id)
     tools = tool_factory(request.api_base, all_endpoints)
@@ -102,14 +106,14 @@ async def run_endpoint(request: RunQuerySchema, api_key: str = Header(...)):
     if vector['parameters']:
         PARAMETERS_GENERATOR_AGENT = dspy.ReAct(
             ParametersGeneratorSignature, tools=tools, max_iters=5)
-        params_model = create_pydantic_model_from_json(
-            vector['parameters'],
-            "RequestParametersModel"
-        )
+        # params_model = create_pydantic_model_from_json(
+        #     vector['parameters'],
+        #     "RequestParametersModel"
+        # )
+        print(vector['parameters'])
         parameters = PARAMETERS_GENERATOR_AGENT(input=ParametersInputModel(
             query=request.query,
-            request_parameters_schema=params_model.model_json_schema()[
-                'properties']
+            request_parameters_schema=vector['parameters']
         ))
         params = parameters.output.request_parameters
 
@@ -117,13 +121,14 @@ async def run_endpoint(request: RunQuerySchema, api_key: str = Header(...)):
     if vector['body']:
         BODY_GENERATOR_AGENT = dspy.ReAct(
             BodyGeneratorSignature, tools=tools, max_iters=5)
-        body_model = create_pydantic_model_from_json(
-            vector['body'],
-            "RequestBodyModel"
-        )
+        # body_model = create_pydantic_model_from_json(
+        #     vector['body'],
+        #     "RequestBodyModel"
+        # )
+        print(vector['body'])
         body_model_instance = BODY_GENERATOR_AGENT(input=BodyInputModel(
             query=request.query,
-            request_body_schema=body_model.model_json_schema()['properties']
+            request_body_schema=vector['body']
         ))
         body = body_model_instance.output.request_body
 
@@ -147,9 +152,10 @@ async def run_endpoint(request: RunQuerySchema, api_key: str = Header(...)):
     elif method == "HEAD":
         response = requests.head(
             url, params=params, headers=request.request_headers)
-
+    
+    print(response.status_code)
+    print(response.text)
     response_content = response.json()
-    print(response_content)
     final_response = FINAL_RESPONSE_GENERATOR_AGENT(input=FinalResponseGeneratorInputModel(
         query=request.query,
         structure_of_data=vector['response'],
@@ -168,3 +174,46 @@ async def run_endpoint(request: RunQuerySchema, api_key: str = Header(...)):
             'response': response_content
         }
     )
+
+#8gPsGafdnLscmLJMirl1M_3r8vGKeg
+#client id: 4ULI3pE1B8gBZRxJoPu1GA
+#jira token: ATATT3xFfGF0aT_RAUdP8sqaQnphOKtFWdiTzAI5FC2gu1Cux0R_D-sBnhmtF7pZ8Xv5rajtENkC1fJzutm8MP_zSmn50IDs-xuHGZFH8k7GbaVLk10ruE9jS8ezCefXclvg9ZLkpv8WToy0emRtbDT2iqquIRpGKnVKXirMidniJszU_VBNkmo=017BED34
+@run_query_router.post("/deep")
+async def deep(request: DeepThinkSchema, api_key: str = Header(...)):
+    lm = dspy.LM(model=request.llm_config.llm,
+                 api_key=request.llm_config.llm_api_key)
+    dspy.configure(lm=lm)
+    integrations = [
+        sqlalchemy_object_to_dict(i)
+        for i in session.query(Integration).filter(
+            Integration.uuid.in_(request.integrations)
+        ).all()
+    ]
+
+    decomposed = DECOMPOSER_AGENT(
+        input=DecomposerInputModel(query=request.query))
+    steps = decomposed.output.steps
+    context = ""
+    print(integrations)
+    for i in range(len(steps)):
+        step = steps[i]
+        id_agent = INTEGRATION_PICKER(input=IntegrationPickerInputModel(
+            query=step,
+            integrations=integrations
+        ))
+        integration_uuid = id_agent.output.uuid
+        result = await run_endpoint(
+            request=RunQuerySchema(
+                rephraser=False,
+                rephrasal_instructions="",
+                integration_id=integration_uuid,
+                request_headers=request.request_headers.get(integration_uuid),
+                additional_context=context,
+                llm_config=request.llm_config
+            ),
+            api_key=api_key
+        )
+        context += str(result) + "\n\n"
+        print(context)
+        
+    return steps

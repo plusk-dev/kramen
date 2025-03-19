@@ -5,10 +5,10 @@ from fastapi.responses import JSONResponse
 from models import Integration, session
 from schemas.raapi_schemas.rag import EditVectorSchema
 from utils.upsert import upsert_vector, qdrant_client
-from schemas.dungo_schemas.integrations import CreateIntegrationModel, DeleteIntegrationModel
+from schemas.dungo_schemas.integrations import CreateIntegrationModel, DeleteIntegrationEndpointModel, DeleteIntegrationModel
 from schemas.dungo_schemas.openapi import UploadOpenapiModel
 from schemas.raapi_schemas.upsert import UpsertSchema
-from utils.auth import verify_token
+from utils.auth import check_integration_ownership, verify_token
 from utils.general import sqlalchemy_object_to_dict
 from utils.openapi import find_ref_schema, convert_schema_to_fields, process_parameters
 
@@ -40,11 +40,12 @@ async def all_integrations(user=Depends(verify_token)):
 
 @integrations_router.post("/delete")
 async def delete_integration(request: DeleteIntegrationModel, user=Depends(verify_token)):
+    check_integration_ownership(request.id, user['id'])
     integration = session.query(Integration).filter(
         Integration.id == request.id,
         Integration.owner_id == user['id']
     ).first()
-
+    qdrant_client.delete_collection(collection_name=integration.uuid)
     if integration is None:
         raise HTTPException(status_code=404, detail={
                             "message": "Integration not found"})
@@ -60,6 +61,7 @@ async def upload_openapi(
     request: UploadOpenapiModel,
     user=Depends(verify_token)
 ):
+    check_integration_ownership(request.integration_id, user['id'])
     if type(request.data) == str:
         request.data = json.loads(request.data)
     routes = []
@@ -123,6 +125,7 @@ async def upload_openapi(
 
 @integrations_router.get("/endpoints")
 async def endpoints(integration_id=Query(str, description="ID of the integration"), user=Depends(verify_token)):
+    check_integration_ownership(integration_id, user['id'])
     try:
         search_results = qdrant_client.scroll(
             collection_name=integration_id,
@@ -136,8 +139,35 @@ async def endpoints(integration_id=Query(str, description="ID of the integration
         return []
 
 
+@integrations_router.post("/delete-endpoint")
+async def delete_endpoint(request: DeleteIntegrationEndpointModel):
+    search_results = qdrant_client.scroll(
+        collection_name=request.integration_id,
+        limit=100,
+        with_payload=True,
+        with_vectors=False,
+    )
+    points = search_results[0]
+    matching_point = None
+    for point in points:
+        print(point.payload.get("url"))
+        if point.payload.get("url") == request.new_metadata["url"]:
+            matching_point = point
+            break
+    qdrant_client.delete(
+        collection_name=request.integration_id,
+        points_selector=[matching_point.id],
+    )
+    if not matching_point:
+        return JSONResponse(content={"message": "No matching vector found for the given URL"}, status_code=404)
+    return {
+        "message": "endpoint deleted"
+    }
+
+
 @integrations_router.post("/edit-endpoint")
 async def edit_vector(request: EditVectorSchema, user=Depends(verify_token)):
+    check_integration_ownership(request.integration_id, user['id'])
     existing_collections = qdrant_client.get_collections().collections
     exists = any(collection.name ==
                  request.integration_id for collection in existing_collections)
@@ -145,11 +175,16 @@ async def edit_vector(request: EditVectorSchema, user=Depends(verify_token)):
     if not exists:
         return JSONResponse(content={"message": "the given bot does not exist"}, status_code=404)
 
-    points = qdrant_client.query_points(
-        collection_name=request.integration_id, with_payload=True).points
-
+    search_results = qdrant_client.scroll(
+        collection_name=request.integration_id,
+        limit=100,
+        with_payload=True,
+        with_vectors=False,
+    )
+    points = search_results[0]
     matching_point = None
     for point in points:
+        print(point.payload.get("url"))
         if point.payload.get("url") == request.new_metadata["url"]:
             matching_point = point
             break
@@ -160,7 +195,6 @@ async def edit_vector(request: EditVectorSchema, user=Depends(verify_token)):
     # Check if the description has changed
     if request.new_metadata.get("description") != matching_point.payload.get("description"):
         # Delete the existing point
-
 
         qdrant_client.delete(
             collection_name=request.integration_id,
