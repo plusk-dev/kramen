@@ -24,7 +24,7 @@ class OutputModel(BaseModel):
     rephrased_query: str = Field(
         ...,
         description=(
-            "What would the API Documentation of an API Endpoint that will answer the users query look like? API Documentations usually use concise and highly technical terms."
+            "Rephrase the query into a slightly more formal and technical way."
         )
     )
 

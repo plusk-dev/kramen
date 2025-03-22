@@ -41,7 +41,7 @@ class DeepThinkSchema(BaseModel):
         ..., description="A flag to indicate whether the integration should rephrase the query before processing.")
     integration_id: str = Field(..., description="ID of the integration")
     # Fixed this line
-    api_base: str = Field(..., description="API Base URL")
+    api_base: dict = Field(..., description="API Base URL")
     query: str = Field(..., description="User query")
     rephrasal_instructions: str = Field(...,
                                         description="System prompt for the LLM")

@@ -1,22 +1,50 @@
-from typing import Any, Type
+from typing import Any, Type, Union
 import dspy
 from pydantic import BaseModel, Field
 
 class InputModel(BaseModel):
-    query: str = Field(..., description="User query")
-    structure_of_data: dict | list = Field(..., description="Structure of the data that you will use to answer the user query")
-    data: Any = Field(..., description="Data that you will use to answer the user's query")
-
+    query: str = Field(
+        ..., 
+        description="The user's question or request, which requires a response based on the provided data."
+    )
+    structure_of_data: Union[dict, list] = Field(
+        ..., 
+        description=(
+            "A well-defined structure (dictionary or list) representing how the data is organized. "
+            "This helps in understanding how to extract relevant information efficiently."
+        )
+    )
+    data: Any = Field(
+        ..., 
+        description=(
+            "The actual dataset (structured as per 'structure_of_data') that will be used to generate "
+            "a meaningful response to the user's query."
+        )
+    )
 
 class OutputModel(BaseModel):
     natural_language_response: str = Field(
-        description="Response to the user's query in natural language.")
-
-
-# def generate_custom_final_response_agent(input_model: Type[BaseModel]):
+        description=(
+            "A well-structured, informative, and concise response to the user's query in natural language. "
+            "Ensure clarity and completeness in addressing the query."
+        )
+    )
 
 class FinalResponseGeneratorSchema(dspy.Signature):
-    input: InputModel = dspy.InputField()
-    output: OutputModel = dspy.OutputField()
+    """
+    A schema that defines how a final response is generated based on structured data input.
+    """
+    input: InputModel = dspy.InputField(
+        description=(
+            "The required input fields, including the user's query, data structure, and actual data, "
+            "to generate a relevant response."
+        )
+    )
+    output: OutputModel = dspy.OutputField(
+        description=(
+            "The output field representing the AI-generated natural language response based on the provided data."
+        )
+    )
 
+# Instantiating the response generation agent
 FINAL_RESPONSE_GENERATOR_AGENT = dspy.Predict(FinalResponseGeneratorSchema)
