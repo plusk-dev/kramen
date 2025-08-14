@@ -77,6 +77,9 @@ python-dotenv==1.0.1
 pytz==2025.1
 psycopg2
 PyYAML==6.0.2
+google-auth==2.25.2
+google-auth-oauthlib==1.2.0
+google-auth-httplib2==0.2.0
 qdrant-client==1.13.3
 redis==5.2.1
 referencing==0.36.2

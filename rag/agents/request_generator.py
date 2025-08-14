@@ -85,6 +85,69 @@ def create_pydantic_model_from_json(parameters, model_name):
     return create_nested_model(parameters, model_name)
 
 
+class DataExtractorInputModel(BaseModel):
+    query: str = Field(
+        description=(
+            "The user query from which data will be extracted. This contains the raw user input that needs to be parsed and structured according to the schema. "
+            "Note: The query may include date/time information in brackets at the beginning (e.g., '[Current date and time: 2024-01-15 14:30:00 UTC]'). "
+            "Use this temporal context if relevant to the query (e.g., for time-based operations, recent data, etc.), otherwise ignore it."
+        )
+    )
+    schema: dict | list = Field(
+        description="The schema definition that specifies the EXACT structure and fields required for the output. The extracted data must STRICTLY conform to this schema with NO additional fields allowed. Only fields explicitly defined in this schema should appear in the output."
+    )
+    schema_type: str = Field(
+        description="The type of schema being processed. Should be either 'parameters' for request parameters or 'body' for request body schema.",
+        default="parameters"
+    )
+
+
+class DataExtractorOutputModel(BaseModel):
+    extracted_data: dict | list = Field(
+        description="The structured data extracted from the query that STRICTLY conforms to the provided schema. CRITICAL REQUIREMENTS: 1) ONLY include fields that are explicitly defined in the schema - NO EXTRA FIELDS ALLOWED. 2) Every required field in the schema must be populated. 3) Optional fields should only be included if they can be determined from the query. 4) Do NOT add any fields that are not in the schema definition. 5) Do NOT modify field names from the schema. 6) The output structure must match the schema exactly. VIOLATION OF THESE RULES IS STRICTLY FORBIDDEN."
+    )
+
+
+class DataExtractorSignature(dspy.Signature):
+    """
+    Extract structured data from a user query based on a provided schema with ZERO TOLERANCE for extra fields.
+    
+    CRITICAL RULES - NEVER VIOLATE THESE:
+    1. ONLY extract fields that are explicitly defined in the provided schema
+    2. NEVER add fields that are not in the schema - this is STRICTLY FORBIDDEN
+    3. NEVER modify field names from the schema definition
+    4. NEVER add nested objects or arrays unless explicitly defined in the schema
+    5. NEVER include metadata, timestamps, or any other fields not in the schema
+    
+    This agent specializes in:
+    1. Parsing user queries to identify ONLY relevant information that maps to schema fields
+    2. Mapping query content EXCLUSIVELY to the exact schema fields provided
+    3. Ensuring ABSOLUTE compliance with the provided schema structure
+    4. Generating appropriate values ONLY for fields defined in the schema
+    5. Handling optional fields by including them ONLY if they exist in the schema AND can be determined from the query
+    6. Following platform-specific guidelines from integration manuals when available
+    
+    The agent MUST:
+    - Extract ALL required fields from the query (as defined in the schema)
+    - Respect field types defined in the schema EXACTLY
+    - NEVER add any fields not present in the schema
+    - Use appropriate defaults for missing optional fields (as defined in the schema)
+    - Maintain data integrity and type consistency within the schema constraints
+    - REJECT any temptation to add "helpful" extra fields
+    - Follow platform-specific workflows and best practices outlined in integration manuals
+    - Consider platform-specific requirements when extracting data (e.g., getting user IDs first for user-related queries)
+    
+    FAILURE TO FOLLOW THESE RULES WILL RESULT IN SYSTEM FAILURE.
+    """
+    input: DataExtractorInputModel = dspy.InputField(
+        desc="Input containing the user query, schema definition, and schema type. The query provides the raw source data, while the schema defines the EXACT target structure for extraction with NO DEVIATION ALLOWED."
+    )
+    output: DataExtractorOutputModel = dspy.OutputField(
+        desc="Output containing the extracted data that EXACTLY conforms to the provided schema with NO EXTRA FIELDS. Only fields defined in the schema are allowed in the output."
+    )
+
+
+# Legacy classes for backward compatibility (deprecated)
 class ParametersInputModel(BaseModel):
     request_parameters_schema: dict | list = Field(
         description="Define the parameters required for the request as a query. Use this schema specifically to extract and structure the request parameters content in the final output."
@@ -96,7 +159,7 @@ class ParametersInputModel(BaseModel):
 
 class ParametersOutputModel(BaseModel):
     request_parameters: dict = Field(
-        description="A JSON object containing the request parameters with values derived from the query. If a request parameters schema is provided, ensure this output is never empty. Include only values explicitly mentioned in the query—do not add anything extra. If there is a parameter named 'query', use very specific keywords only as the value for that parameter, never use the entire user query."
+        description="A JSON object containing the request body with values derived from the query. If a request body schema is provided, this output must never be empty. Include only values explicitly mentioned in the query—do not add anything extra."
     )
 
 

@@ -1,14 +1,13 @@
 import json
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from models import Integration, session
 from schemas.raapi_schemas.rag import EditVectorSchema
 from utils.upsert import upsert_vector, qdrant_client
-from schemas.dungo_schemas.integrations import CreateIntegrationModel, DeleteIntegrationEndpointModel, DeleteIntegrationModel
-from schemas.dungo_schemas.openapi import UploadOpenapiModel
+from schemas.dungo_schemas.integrations import CreateIntegrationModel, DeleteIntegrationEndpointModel, DeleteIntegrationModel, UpdateIntegrationDescriptionModel
+
 from schemas.raapi_schemas.upsert import UpsertSchema
-from utils.auth import check_integration_ownership, verify_token
 from utils.general import sqlalchemy_object_to_dict
 from utils.openapi import find_ref_schema, convert_schema_to_fields, process_parameters
 
@@ -16,11 +15,13 @@ integrations_router = APIRouter()
 
 
 @integrations_router.post("/create")
-async def create_integrations(request: CreateIntegrationModel, user=Depends(verify_token)):
+async def create_integrations(request: CreateIntegrationModel):
     integration = Integration(
         name=request.name,
+        description=request.description,
         uuid=str(uuid.uuid4()),
-        owner_id=user['id'],
+        icon=request.icon,
+        auth_structure=request.auth_structure,
     )
     session.add(integration)
     session.commit()
@@ -28,9 +29,8 @@ async def create_integrations(request: CreateIntegrationModel, user=Depends(veri
 
 
 @integrations_router.get("/all")
-async def all_integrations(user=Depends(verify_token)):
-    integrations = session.query(Integration).filter(
-        Integration.owner_id == user['id']).all()
+async def all_integrations():
+    integrations = session.query(Integration).all()
     res = []
     for i in integrations:
         res.append(sqlalchemy_object_to_dict(i))
@@ -39,17 +39,16 @@ async def all_integrations(user=Depends(verify_token)):
 
 
 @integrations_router.post("/delete")
-async def delete_integration(request: DeleteIntegrationModel, user=Depends(verify_token)):
-    check_integration_ownership(request.id, user['id'])
+async def delete_integration(request: DeleteIntegrationModel):
     integration = session.query(Integration).filter(
-        Integration.id == request.id,
-        Integration.owner_id == user['id']
+        Integration.id == request.id
     ).first()
-    qdrant_client.delete_collection(collection_name=integration.uuid)
+    
     if integration is None:
         raise HTTPException(status_code=404, detail={
                             "message": "Integration not found"})
-
+    
+    qdrant_client.delete_collection(collection_name=integration.uuid)
     session.delete(integration)
     session.commit()
 
@@ -58,15 +57,37 @@ async def delete_integration(request: DeleteIntegrationModel, user=Depends(verif
 
 @integrations_router.post("/upload-openapi")
 async def upload_openapi(
-    request: UploadOpenapiModel,
-    user=Depends(verify_token)
+    integration_id: str = Form(...),
+    selected_endpoints: str = Form(...),
+    file: UploadFile = File(...)
 ):
-    check_integration_ownership(request.integration_id, user['id'])
-    if type(request.data) == str:
-        request.data = json.loads(request.data)
+    # Validate file type
+    if not file.filename.endswith('.json'):
+        raise HTTPException(status_code=400, detail="Only JSON files are allowed")
+    
+    # Parse selected endpoints
+    try:
+        selected_endpoints_list = json.loads(selected_endpoints)
+        if not isinstance(selected_endpoints_list, list):
+            raise ValueError("selected_endpoints must be a list")
+    except (json.JSONDecodeError, ValueError) as e:
+        raise HTTPException(status_code=400, detail=f"Invalid selected_endpoints format: {str(e)}")
+    
+    # Read and parse the JSON file
+    try:
+        content = await file.read()
+        data = json.loads(content.decode('utf-8'))
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON file")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error reading file: {str(e)}")
+    
     routes = []
-    paths = request.data['paths']
-    components = request.data.get('components', {}).get('schemas', {})
+    paths = data['paths']
+    components = data.get('components', {}).get('schemas', {})
+    
+    print(f"Processing {len(paths)} paths")
+    print(f"Found {len(components)} component schemas")
 
     for path, path_content in paths.items():
         for method, request_content in path_content.items():
@@ -75,19 +96,41 @@ async def upload_openapi(
                 'url': path,
                 'description': request_content.get('description', ''),
                 'text': request_content.get('description', ''),
-                'integration_id': request.integration_id,
+                'integration_id': integration_id,
                 'tool': False
             }
-            if str(method.upper() + "_" + path) not in request.selected_endpoints:
+            
+            # Check if this endpoint is in the selected endpoints
+            # If selected_endpoints_list is empty, select all endpoints
+            if selected_endpoints_list and str(method.upper() + "_" + path) not in selected_endpoints_list:
                 continue
+
+            print(f"\nProcessing endpoint: {method.upper()} {path}")
+            print(f"Has requestBody: {'requestBody' in request_content}")
+            if 'requestBody' in request_content:
+                print(f"requestBody content types: {list(request_content['requestBody'].get('content', {}).keys())}")
 
             parameters = request_content.get('parameters', [])
             route['parameters'] = process_parameters(parameters)
 
             request_body = request_content.get('requestBody', {})
-            content = request_body.get(
-                'content', {}).get('application/json', {})
-            body_schema = content.get('schema', {})
+            
+            # Handle multiple content types for request body
+            body_schema = {}
+            content_types = request_body.get('content', {})
+            
+            # Try different content types in order of preference
+            for content_type in ['application/json', 'application/x-www-form-urlencoded', 'multipart/form-data']:
+                if content_type in content_types:
+                    body_schema = content_types[content_type].get('schema', {})
+                    break
+            
+            # If no specific content type found, try to get any schema from content
+            if not body_schema and content_types:
+                for content_type, content_data in content_types.items():
+                    if 'schema' in content_data:
+                        body_schema = content_data['schema']
+                        break
 
             if body_schema:
                 if '$ref' in body_schema:
@@ -95,8 +138,10 @@ async def upload_openapi(
                         body_schema['$ref'], components)
                 body_fields = convert_schema_to_fields(body_schema, components)
                 route['body'] = json.dumps(body_fields)
+                print(f"Body fields for {method.upper()} {path}: {body_fields}")
             else:
                 route['body'] = '[]'
+                print(f"No body schema found for {method.upper()} {path}")
 
             success_response = request_content.get(
                 'responses', {}).get('200', {})
@@ -124,8 +169,7 @@ async def upload_openapi(
 
 
 @integrations_router.get("/endpoints")
-async def endpoints(integration_id=Query(str, description="ID of the integration"), user=Depends(verify_token)):
-    check_integration_ownership(integration_id, user['id'])
+async def endpoints(integration_id=Query(str, description="ID of the integration")):
     try:
         search_results = qdrant_client.scroll(
             collection_name=integration_id,
@@ -166,8 +210,7 @@ async def delete_endpoint(request: DeleteIntegrationEndpointModel):
 
 
 @integrations_router.post("/edit-endpoint")
-async def edit_vector(request: EditVectorSchema, user=Depends(verify_token)):
-    check_integration_ownership(request.integration_id, user['id'])
+async def edit_vector(request: EditVectorSchema):
     existing_collections = qdrant_client.get_collections().collections
     exists = any(collection.name ==
                  request.integration_id for collection in existing_collections)
@@ -217,3 +260,19 @@ async def edit_vector(request: EditVectorSchema, user=Depends(verify_token)):
         )
 
     return {"message": "operation successful"}
+
+
+@integrations_router.post("/update-integration-description")
+async def update_integration_description(request: UpdateIntegrationDescriptionModel):
+    integration = session.query(Integration).filter(
+        Integration.id == request.id
+    ).first()
+    
+    if integration is None:
+        raise HTTPException(status_code=404, detail={
+                            "message": "Integration not found"})
+    
+    integration.description = request.description
+    session.commit()
+
+    return sqlalchemy_object_to_dict(integration)

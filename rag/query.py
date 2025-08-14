@@ -117,7 +117,7 @@ def tool_factory(api_base: str, endpoints: List[ScoredPoint]) -> List[Callable]:
                 arg_list = ", ".join(param_definitions)
                 param_names = [param.split('=')[0]
                                for param in param_definitions]
-                print(arg_list)
+                # print(arg_list)
                 function_code = f"""
 def tool_function({arg_list}):
     \"\"\"

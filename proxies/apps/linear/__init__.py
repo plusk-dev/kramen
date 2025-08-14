@@ -1,0 +1,3 @@
+"""
+Linear integration module.
+""" 

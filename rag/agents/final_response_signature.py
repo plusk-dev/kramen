@@ -5,7 +5,11 @@ from pydantic import BaseModel, Field
 class InputModel(BaseModel):
     query: str = Field(
         ..., 
-        description="The user's question or request, which requires a response based on the provided data."
+        description=(
+            "The user's question or request, which requires a response based on the provided data. "
+            "Note: The query may include date/time information in brackets at the beginning (e.g., '[Current date and time: 2024-01-15 14:30:00 UTC]'). "
+            "Use this temporal context if relevant to the query (e.g., for time-based operations, recent data, etc.), otherwise ignore it."
+        )
     )
     structure_of_data: Union[dict, list] = Field(
         ..., 
@@ -31,9 +35,6 @@ class OutputModel(BaseModel):
     )
 
 class FinalResponseGeneratorSchema(dspy.Signature):
-    """
-    A schema that defines how a final response is generated based on structured data input.
-    """
     input: InputModel = dspy.InputField(
         description=(
             "The required input fields, including the user's query, data structure, and actual data, "
@@ -42,7 +43,7 @@ class FinalResponseGeneratorSchema(dspy.Signature):
     )
     output: OutputModel = dspy.OutputField(
         description=(
-            "The output field representing the AI-generated natural language response based on the provided data."
+            "The output field representing the AI-generated natural language response based on the provided data. This should contain all the details given to you, including every single thing. Like unique identifiers if provided, all kinds of attributes, etc."
         )
     )
 

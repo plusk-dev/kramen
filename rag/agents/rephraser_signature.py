@@ -15,7 +15,9 @@ class InputModel(BaseModel):
     query: str = Field(
         ...,
         description=(
-            "Query to be rephrased"
+            "Query to be rephrased. "
+            "Note: The query may include date/time information in brackets at the beginning (e.g., '[Current date and time: 2024-01-15 14:30:00 UTC]'). "
+            "Use this temporal context if relevant to the query (e.g., for time-based operations, recent data, etc.), otherwise ignore it."
         )
     )
 

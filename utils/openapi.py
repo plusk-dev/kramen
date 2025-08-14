@@ -20,6 +20,7 @@ def convert_schema_to_fields(
         visited_refs = set()
 
     if depth > max_depth:
+        print(f"Max depth reached for schema: {schema}")
         return []
 
     fields = []
@@ -27,54 +28,93 @@ def convert_schema_to_fields(
     if '$ref' in schema:
         ref_path = schema['$ref']
         if ref_path in visited_refs:
+            print(f"Circular reference detected: {ref_path}")
             return []
         visited_refs.add(ref_path)
         schema = find_ref_schema(ref_path, components)
+        if not schema:
+            print(f"Could not resolve reference: {ref_path}")
+            return []
 
-    properties = schema.get('properties', {})
-    required = schema.get('required', [])
+    # Handle different schema types
+    schema_type = schema.get('type', 'object')
+    
+    if schema_type == 'object':
+        properties = schema.get('properties', {})
+        required = schema.get('required', [])
 
-    for key, prop in properties.items():
-        field = {
-            'key': key,
-            'type': prop.get('type', 'string'),
-            'description': prop.get('description', ''),
-            'required': key in required,
-            'fields': []
-        }
+        for key, prop in properties.items():
+            field = {
+                'key': key,
+                'type': prop.get('type', 'string'),
+                'description': prop.get('description', ''),
+                'required': key in required,
+                'fields': []
+            }
 
-        if prop.get('type') == 'object':
-            if '$ref' in prop:
-                ref_path = prop['$ref']
-                if ref_path not in visited_refs:
-                    visited_refs.add(ref_path)
-                    prop = find_ref_schema(ref_path, components)
-            field['fields'] = convert_schema_to_fields(
-                prop,
-                components,
-                visited_refs.copy(),
-                depth + 1,
-                max_depth
-            )
-
-        # Handle array
-        elif prop.get('type') == 'array':
-            items = prop.get('items', {})
-            if '$ref' in items:
-                ref_path = items['$ref']
-                if ref_path not in visited_refs:
-                    visited_refs.add(ref_path)
-                    items = find_ref_schema(ref_path, components)
-            if items.get('type') == 'object':
+            if prop.get('type') == 'object':
+                if '$ref' in prop:
+                    ref_path = prop['$ref']
+                    if ref_path not in visited_refs:
+                        visited_refs.add(ref_path)
+                        prop = find_ref_schema(ref_path, components)
                 field['fields'] = convert_schema_to_fields(
-                    items,
+                    prop,
                     components,
                     visited_refs.copy(),
                     depth + 1,
                     max_depth
                 )
 
+            # Handle array
+            elif prop.get('type') == 'array':
+                items = prop.get('items', {})
+                if '$ref' in items:
+                    ref_path = items['$ref']
+                    if ref_path not in visited_refs:
+                        visited_refs.add(ref_path)
+                        items = find_ref_schema(ref_path, components)
+                if items.get('type') == 'object':
+                    field['fields'] = convert_schema_to_fields(
+                        items,
+                        components,
+                        visited_refs.copy(),
+                        depth + 1,
+                        max_depth
+                    )
+
+            fields.append(field)
+    
+    elif schema_type == 'array':
+        # Handle array at root level
+        items = schema.get('items', {})
+        if '$ref' in items:
+            ref_path = items['$ref']
+            if ref_path not in visited_refs:
+                visited_refs.add(ref_path)
+                items = find_ref_schema(ref_path, components)
+        if items.get('type') == 'object':
+            fields = convert_schema_to_fields(
+                items,
+                components,
+                visited_refs.copy(),
+                depth + 1,
+                max_depth
+            )
+    
+    elif schema_type in ['string', 'number', 'integer', 'boolean']:
+        # Handle primitive types
+        field = {
+            'key': 'value',
+            'type': schema_type,
+            'description': schema.get('description', ''),
+            'required': True,
+            'fields': []
+        }
         fields.append(field)
+    
+    else:
+        print(f"Unhandled schema type: {schema_type} for schema: {schema}")
 
     return fields
 

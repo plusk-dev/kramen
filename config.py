@@ -5,22 +5,31 @@ from qdrant_client import QdrantClient
 # Fetch environment variables with default values
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///dev.db")
-if DATABASE_URL == "":
-    DATABASE_URL = "sqlite:///dev.db"
+# DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///dev.db")
+# if DATABASE_URL == "":
+DATABASE_URL = "sqlite:///dev.db"
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "")
-JWT_SECRET = os.getenv("JWT_SECRET", "cocomelon")
-JWT_EXPIRY_DAYS = int(os.getenv("JWT_EXPIRY_DAYS", 2))
 
 DENSE_EMBEDDING_MODEL = os.getenv("DENSE_EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 SPARSE_EMBEDDING_MODEL = os.getenv("SPARSE_EMBEDDING_MODEL", "bm25")
 LATE_EMBEDDING_MODEL = os.getenv("LATE_EMBEDDING_MODEL", "colbertv2.0")
 
-KRAMEN_PRODUCT_ID = os.getenv("PRODUCT_ID", "prod_RtAaDut7sjXW4w")
-STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "sk_test_51PXtInINlb77fuyVbfH0uDHYvm70OcWFuReQMtT3aeKNaQNgueJHWpLmFIQZz8zcAOglk1DtmQHzhGa0qDpAWFxy00TyMm3ZT9")
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "whsec_84d697f22eda068596c45d3917ee7941a5970cad4d206dd237c85352117e1da7")
+DEFAULT_RATE_LIMIT = 1000
 
-FREE_RATE_LIMIT = 500
+# LLM API Key mapping - maps LLM names to their API keys
+LLM_API_KEYS = {
+    "gpt-4o-mini": os.getenv("OPENAI_API_KEY", ""),
+    "openai/gpt-4o": os.getenv("OPENAI_API_KEY", ""),
+    "openai/gpt-4.1": os.getenv("OPENAI_API_KEY", ""),
+    "openai/gpt-3.5-turbo": os.getenv("OPENAI_API_KEY", ""),
+    "openai/gpt-4o-mini": os.getenv("OPENAI_API_KEY", ""),
+    "claude-3-opus": os.getenv("ANTHROPIC_API_KEY", ""),
+    "claude-3-sonnet": os.getenv("ANTHROPIC_API_KEY", ""),
+    "claude-3-haiku": os.getenv("ANTHROPIC_API_KEY", ""),
+    "google/gemini-pro": os.getenv("GOOGLE_API_KEY", ""),
+    "llama-2": os.getenv("META_API_KEY", ""),
+    # Add more LLM mappings as needed
+}
 
 # Initialize Qdrant client
 qdrant_client = QdrantClient(
@@ -29,3 +38,20 @@ qdrant_client = QdrantClient(
 )
 
 redis_client = Redis.from_url(REDIS_URL)
+
+# Default LLM configuration
+DEFAULT_LLM = "openai/gpt-4.1"
+
+def configure_default_dspy():
+    """Configure DSPy with the default LLM model."""
+    import dspy
+    
+    api_key = LLM_API_KEYS.get(DEFAULT_LLM, "")
+    if not api_key:
+        raise ValueError(f"No API key found for default LLM: {DEFAULT_LLM}")
+    
+    lm = dspy.LM(
+        model=DEFAULT_LLM,
+        api_key=api_key
+    )
+    dspy.configure(lm=lm)
