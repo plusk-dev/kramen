@@ -1,10 +1,6 @@
-# Kramen Backend
+# Kramen
 
-An intelligent API integration platform that provides advanced query processing capabilities using Retrieval-Augmented Generation (RAG) and dynamic proxy management for third-party service integrations.
-
-## Overview
-
-Kramen combines RAG and tool calling to increase the number of tools accessible by an LLM at a time.
+Kramen makes it easy for language models to use many different tools and APIs at once. It connects LLMs to third-party services using tool calling and Retrieval-Augmented Generation (RAG), so you can handle complex tasks with simple queries. Proxies are used to provide isolated, scalable access to each integration.
 
 
 ## Architecture
