@@ -3,34 +3,7 @@
 Kramen makes it easy for language models to use many different tools and APIs at once. It connects LLMs to third-party services using tool calling and Retrieval-Augmented Generation (RAG), so you can handle complex tasks with simple queries. Proxies are used to provide isolated, scalable access to each integration.
 
 
-## Architecture
-
-### System Components
-
-**Main Application Server**
-- FastAPI framework with automatic OpenAPI documentation
-- CORS middleware for cross-origin request handling
-- Exception handling with custom error responses
-- Event-driven startup and shutdown procedures
-
-**RAG Processing Engine**
-- Query decomposition using specialized AI agents
-- Multi-stage processing pipeline for complex queries
-- Integration selection and endpoint filtering
-- Request generation and response synthesis
-
-**Proxy Management System**
-- Independent proxy servers for service isolation
-- Configuration-driven module loading
-- Health monitoring and status reporting
-- Scalable architecture for adding new integrations
-
-**Vector Database Layer**
-- Qdrant integration for semantic search capabilities
-- Multiple embedding model support
-- Hybrid search combining dense and sparse vectors
-- Late interaction embeddings for advanced relevance
-
+To make integrations, you make a proxy to another API. This proxy serves as a simpler API that is easier for LLMs to interpret. The OpenAPI spec of that API serves as the documentation of tools. This can be upserted into the vector database (Qdrant) via `/integrations/upload-openapi`
 ## Proxy Configuration
 
 The proxy system provides isolated endpoints for different third-party integrations. Each integration runs as an independent FastAPI application on its own port.
