@@ -4,6 +4,12 @@ Kramen makes it easy for language models to use many different tools and APIs at
 
 
 To make integrations, you make a proxy to another API. This proxy serves as a simpler API that is easier for LLMs to interpret. The OpenAPI spec of that API serves as the documentation of tools. This can be upserted into the vector database (Qdrant) via `/integrations/upload-openapi`
+
+## Getting Started with the UI
+
+To set up the user interface, make sure to install and run the frontend. The frontend code is located in the `frontend/` directory. Follow the instructions in the `frontend/README.md` to install dependencies and start the development server.
+
+
 ## Proxy Configuration
 
 The proxy system provides isolated endpoints for different third-party integrations. Each integration runs as an independent FastAPI application on its own port.
