@@ -19,8 +19,9 @@ DEFAULT_RATE_LIMIT = 1000
 # LLM API Key mapping - maps LLM names to their API keys
 LLM_API_KEYS = {
     "gpt-4o-mini": os.getenv("OPENAI_API_KEY", ""),
-    "openai/gpt-4o": os.getenv("OPENAI_API_KEY", ""),
+    "openai/gpt-5": os.getenv("OPENAI_API_KEY", ""),
     "openai/gpt-4.1": os.getenv("OPENAI_API_KEY", ""),
+    "gpt-4.1": os.getenv("OPENAI_API_KEY", ""),
     "openai/gpt-3.5-turbo": os.getenv("OPENAI_API_KEY", ""),
     "openai/gpt-4o-mini": os.getenv("OPENAI_API_KEY", ""),
     "claude-3-opus": os.getenv("ANTHROPIC_API_KEY", ""),
@@ -40,7 +41,7 @@ qdrant_client = QdrantClient(
 redis_client = Redis.from_url(REDIS_URL)
 
 # Default LLM configuration
-DEFAULT_LLM = "openai/gpt-4.1"
+DEFAULT_LLM = "openai/gpt-5"
 
 def configure_default_dspy():
     """Configure DSPy with the default LLM model."""

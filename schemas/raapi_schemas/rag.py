@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 
 class LLMConfig(BaseModel):
-    llm: str = Field(default="gpt-4o-mini", description="Identifier for the LLM")
+    llm: str = Field(default="gpt-4.1", description="Identifier for the LLM")
 
 
 class IdentifyEndpointsRequest(BaseModel):
